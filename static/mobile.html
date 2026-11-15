@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#28A8D6">
+<title>ALCI</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 24'%3E%3Cpath d='M10 1C10 1 2 10 2 15a8 8 0 0 0 16 0C18 10 10 1 10 1z' fill='%230A7C8A'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/fonts.css">
+<style>
+:root{--paper:#F6FAFB;--surface:#fff;--ink:#10283A;--muted:#566F7E;--line:#D5E2E8;--lagoon:#0A7C8A;--amber:#A86F00;--coral:#C93C26;--tint:#28A8D6;
+ --display:"Unbounded",system-ui,sans-serif;--body:"Instrument Sans",system-ui,sans-serif}
+@media(prefers-color-scheme:dark){:root{--paper:#0E2230;--surface:#15323F;--ink:#E6F1F4;--muted:#94B1BE;--line:#27495B;--lagoon:#4FC3CD;--amber:#F0B73A;--coral:#F2806A}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font:16px/1.5 var(--body);color:var(--ink);background:color-mix(in srgb,var(--tint) 30%,var(--paper));min-height:100dvh;transition:background .6s}
+h1,h2,h3{font-family:var(--display);font-weight:500;margin:0;line-height:1.15;letter-spacing:-.02em}
+.muted{color:var(--muted)}a{color:var(--lagoon)}
+:focus-visible{outline:3px solid var(--amber);outline-offset:3px;border-radius:6px}
+main{max-width:520px;margin:0 auto}
+.brandbar{display:flex;justify-content:space-between;align-items:baseline;padding:calc(18px + env(safe-area-inset-top)) 22px 0}
+.brand{font:700 1.25rem var(--display);letter-spacing:-.03em}.brandbar span{font-size:.82rem;color:var(--muted)}
+.top{text-align:center;padding:10px 22px 0}
+.gota{display:block;margin:0 auto}
+.score{font:700 4.4rem/1 var(--display);letter-spacing:-.06em;margin-top:12px}.score small{font:500 1rem var(--display);letter-spacing:0;color:var(--muted);margin-left:.25rem}
+.top h1{font:600 1.45rem/1.2 var(--body);letter-spacing:-.015em;margin:8px auto 4px;max-width:20ch}
+.top p{margin:0;color:var(--muted);font-size:.92rem}
+.sheet{background:var(--paper);border-radius:36px 36px 0 0;margin-top:26px;padding:12px 22px calc(120px + env(safe-area-inset-bottom));min-height:60dvh}
+.page .sheet{margin-top:14px}
+.page h1.title{font:500 1.6rem var(--display);padding:12px 22px 0}
+.rd{display:grid;grid-template-columns:1fr auto;gap:2px 14px;align-items:center;padding:18px 0;border-bottom:1px solid var(--line)}
+.rd .n{font-weight:600}.rd .n span{display:block;font-weight:400;font-size:.85rem;color:var(--muted)}
+.rd .v{font:500 1.5rem var(--display);letter-spacing:-.03em;text-align:right}.rd .v small{font-size:.7rem;color:var(--muted);letter-spacing:0}
+.tag{font-weight:600;font-size:.92rem;display:flex;align-items:center;gap:7px;grid-column:1}
+.tag::before{content:"";width:9px;height:9px;border-radius:50%;background:currentColor}
+.tag.good{color:var(--lagoon)}.tag.ok{color:var(--amber)}.tag.bad{color:var(--coral)}
+.rd .spark{grid-column:2;grid-row:2;justify-self:end}
+.spark{width:96px;height:28px}.sl{fill:none;stroke:var(--lagoon);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}.sd{fill:var(--ink)}.dash{stroke-dasharray:3 5;opacity:.45}
+.phstrip{position:relative;height:16px;border-radius:8px;margin:38px 0 4px}
+.phstrip i{position:absolute;top:-8px;height:26px;border-left:3px solid var(--ink)}
+.phstrip i b{position:absolute;top:-26px;left:-19px;width:38px;text-align:center;font:500 .78rem var(--display);background:var(--ink);color:var(--paper);border-radius:7px;padding:2px 0}
+.phticks{display:grid;grid-template-columns:1fr 1fr 1fr;font-size:.78rem;color:var(--muted)}.phticks span:nth-child(2){text-align:center}.phticks span:last-child{text-align:right}
+.sec{margin:30px 0 0}.sec h2{font-size:1.15rem;margin-bottom:10px}
+.sec p{margin:.3rem 0 0}
+.todo{list-style:none;padding:0;margin:12px 0 0;background:color-mix(in srgb,var(--tint) 14%,var(--surface));border-radius:26px;padding:6px 20px}
+.todo li{position:relative;padding:14px 0 14px 34px;border-top:1px solid color-mix(in srgb,var(--ink) 12%,transparent)}
+.todo li:first-child{border-top:0}
+.todo li::before{content:"";position:absolute;left:0;top:17px;width:20px;height:20px;border-radius:50%;border:2px solid var(--ink)}
+.small{font-size:.85rem}
+.pills{display:flex;gap:8px;margin:16px 0}
+.pills button{all:unset;cursor:pointer;padding:8px 16px;border-radius:999px;font-weight:600;font-size:.9rem;box-shadow:inset 0 0 0 1.5px var(--line)}
+.pills button[aria-pressed=true]{background:var(--ink);color:var(--paper);box-shadow:none}
+.chart{width:100%;height:auto}.chart text{font-size:19px;fill:var(--muted)}.chart .band{fill:var(--lagoon);opacity:.14}.chart .line{stroke:var(--lagoon)}.chart .dot{fill:var(--ink)}
+.plot{margin:8px 0 22px}.plot h3{font-size:.95rem;margin-bottom:4px}
+.btn{display:block;text-align:center;text-decoration:none;font:600 1rem var(--body);background:var(--lagoon);color:#fff;border-radius:999px;padding:14px;margin:18px 0}
+.btn.alt{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
+.banner{background:color-mix(in srgb,var(--amber) 22%,var(--paper));padding:12px 16px;border-radius:18px;margin:16px 22px 0;font-size:.92rem;text-align:left}
+nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-bottom));max-width:492px;margin:0 auto;background:var(--ink);border-radius:999px;display:flex;padding:6px;z-index:5;box-shadow:0 8px 28px color-mix(in srgb,var(--ink) 30%,transparent)}
+nav button{all:unset;cursor:pointer;flex:1;text-align:center;padding:9px 0 8px;border-radius:999px;font-size:.74rem;font-weight:500;color:color-mix(in srgb,var(--paper) 70%,transparent);display:grid;gap:2px;justify-items:center}
+nav button[aria-selected=true]{background:var(--paper);color:var(--ink);font-weight:600}
+.empty{padding:50px 0;text-align:left}.empty h2{font-size:1.3rem;margin-bottom:10px}
+</style>
+</head>
+<body>
+<main>
+ <div class="brandbar"><span class="brand">ALCI</span><span id="dev"></span></div>
+ <div class="top" id="top"></div>
+ <div class="sheet" id="sheet"></div>
+</main>
+<nav aria-label="Secciones" id="nav"></nav>
+<script>
+// muestra en pantalla cualquier fallo de carga o de script, para poder diagnosticar sin consola
+(function () {
+  function show(m) { var d = document.createElement("div"); d.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:99;background:#C8452B;color:#fff;padding:10px 14px;font:14px system-ui"; d.textContent = "Error en la página: " + m; (document.body || document.documentElement).appendChild(d); }
+  addEventListener("error", function (e) { show(e.message || ("no se pudo cargar " + ((e.target && (e.target.src || e.target.href)) || "un archivo"))); }, true);
+  addEventListener("unhandledrejection", function (e) { show((e.reason && e.reason.message) || e.reason); });
+})();
+</script>
+<script src="/static/common.js?v=3"></script>
+<script>
+const TABS = [["hoy", "Hoy", "M12 3s-6 7-6 11a6 6 0 0 0 12 0c0-4-6-11-6-11z"], ["hist", "Historial", "M4 19V5M4 19h16M8 15l4-5 3 3 4-6"],
+  ["tips", "Consejos", "M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10c1 1 1 2 1 3h6c0-1 0-2 1-3a6 6 0 0 0-4-10z"], ["mas", "Más", "M5 12h.01M12 12h.01M19 12h.01"]];
+let S, tab = "hoy", days = 7;
+$("#nav").innerHTML = TABS.map(([k, l, d]) => `<button data-k="${k}" aria-selected="${k === "hoy"}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>${l}</button>`).join("");
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => { tab = b.dataset.k; document.querySelectorAll("nav button").forEach(x => x.setAttribute("aria-selected", x === b)); scrollTo(0, 0); render(); });
+
+function header(L) {
+  if (!L) return `<h1 style="margin-top:40px">Todavía no hay mediciones</h1><p>Cuando el equipo analice la primera muestra, aquí verás cómo está el agua.</p>`;
+  const [t] = tier(L.score), a = L.analysis;
+  return `${drop(L.score, 176)}<div class="score">${L.score}<small>/100</small></div><h1>${esc(a?.headline || t)}</h1><p>Medido ${ago(L.ts, S.now)}</p>
+   ${S.now - L.ts > S.interval_min * 120 ? `<div class="banner" style="margin:16px 0 0">Hace tiempo que no llegan mediciones. Puede que el equipo esté apagado.</div>` : ""}`;
+}
+
+async function render() {
+  const L = S.latest; $("#dev").textContent = S.device;
+  if (L) { document.documentElement.style.setProperty("--tint", dropColor(L.score)); document.querySelector("meta[name=theme-color]").content = dropColor(L.score); }
+  document.body.classList.toggle("page", tab !== "hoy");
+  $("#top").innerHTML = tab === "hoy" ? header(L) : `<h1 class="title" style="text-align:left;padding:0">${TABS.find(t => t[0] === tab)[1]}</h1>`;
+  $("#sheet").innerHTML = await ({ hoy: hoy, hist: hist, tips: tips, mas: mas })[tab]();
+  document.querySelectorAll("[data-d]").forEach(b => b.onclick = () => { days = +b.dataset.d; render(); });
+}
+
+async function hoy() {
+  const L = S.latest; if (!L) return `<p class="muted" style="margin-top:34px">El equipo mide cada ${S.interval_min >= 60 ? S.interval_min / 60 + " horas" : S.interval_min + " minutos"}. Vuelve en un rato.</p>`;
+  const rows = (await api("/history?days=7")).rows, a = L.analysis;
+  const rd = [["Acidez", "ph", words.ph(L.ph), L.ph == null ? "—" : L.ph.toFixed(1), L.ph_cal ? "" : "aproximada"],
+    ["Claridad", "ntu", words.ntu(L.ntu), L.ntu == null ? "—" : L.ntu.toFixed(0) + " <small>NTU</small>", ""],
+    ["Temperatura", "temp", words.temp(L.temp), L.temp == null ? "—" : L.temp.toFixed(1) + " <small>°C</small>", ""]];
+  return `${rd.map(([n, k, [w, tone], v, note]) => `<div class="rd"><div class="n">${n}${note ? `<span>${note}</span>` : ""}</div><div class="v">${v}</div><div class="tag ${tone}">${w}</div>${spark(rows, k, SPARK[k])}</div>`).join("")}
+   ${phStrip(L.ph)}
+   ${a ? `<div class="sec"><h2>Qué le pasa al agua</h2><p>${esc(a.summary)}</p></div>
+     ${a.actions?.length ? `<div class="sec"><h2>Qué puedes hacer</h2><ul class="todo">${actionsList(a.actions)}</ul></div>` : ""}` : `<p class="muted sec">Estamos preparando el análisis…</p>`}
+   <p class="muted small sec">Medimos acidez, claridad y temperatura. No detectamos cloro ni bacterias, así que esto no dice si el agua se puede beber.</p>`;
+}
+
+async function hist() {
+  const h = await api("/history?days=" + days);
+  return `<div class="pills" role="group" aria-label="Periodo">${[[1, "Hoy"], [7, "7 días"], [30, "30 días"]].map(([d, l]) => `<button data-d="${d}" aria-pressed="${d === days}">${l}</button>`).join("")}</div>
+   ${CHARTS.map(([k, t, o]) => `<div class="plot"><h3>${t}</h3>${chart(h.rows, k, o)}</div>`).join("")}
+   ${h.patterns.length ? `<div class="sec"><h2>Se repite seguido</h2>${h.patterns.map(p => `<div class="rd"><div class="n">${esc(p.issue)}</div><div class="v">${p.share}%</div><div class="tag bad">de las muestras</div></div>`).join("")}</div>` : ""}`;
+}
+
+async function tips() {
+  const adv = await api("/advice");
+  return adv.map(x => `<div class="sec"><h2>${esc(x.analysis.headline)}</h2><p class="muted small">${dayfmt(x.ts)}, puntaje ${x.score}</p><p>${esc(x.analysis.summary)}</p>
+   ${x.analysis.actions?.length ? `<ul class="todo">${actionsList(x.analysis.actions)}</ul>` : ""}
+   ${x.analysis.sources?.length ? `<ul class="small">${sourcesList(x.analysis.sources)}</ul>` : ""}</div>`).join("") || `<div class="empty"><h2>Aún no hay consejos</h2><p class="muted">Aparecerán después de la primera medición.</p></div>`;
+}
+
+function mas() {
+  const every = S.interval_min >= 60 ? S.interval_min / 60 + " h" : S.interval_min + " min";
+  return `<div class="rd"><div class="n">Asistente</div><div class="v"></div><div class="tag ${S.ollama ? "good" : "bad"}">${S.ollama ? "Funcionando" : "Apagado"}</div></div>
+   <div class="rd"><div class="n">Equipo</div><div class="v" style="font-size:1rem">${esc(S.device)}</div></div>
+   <div class="rd"><div class="n">Medimos cada</div><div class="v" style="font-size:1.2rem">${every}</div></div>
+   <a class="btn alt" href="/?view=desktop">Abrir el panel avanzado</a>
+   <p class="muted small">El panel avanzado sirve para calibrar el sensor de pH y actualizar el sistema. Pide la contraseña de administrador.</p>`;
+}
+
+api("/status").then(s => { S = s; render(); setInterval(async () => { if (!document.hidden) { S = await api("/status"); render(); } }, 120000); });
+</script>
+</body>
+</html>
