@@ -43,10 +43,14 @@ def logout(response: Response, alci_session: str | None = Cookie(None)):
 jobs = {}
 _job_lock = threading.Lock()
 
+PUMP_JOBS = ("measure", "clean")  # both move the pumps, so never together
+
 def start_job(name, fn):
     with _job_lock:
         if jobs.get(name, {}).get("state") == "running":
             raise HTTPException(409, "Ya hay una tarea igual en curso.")
+        if name in PUMP_JOBS and any(jobs.get(n, {}).get("state") == "running" for n in PUMP_JOBS):
+            raise HTTPException(409, "Las bombas están ocupadas con otra tarea.")
         jobs[name] = {"state": "running", "log": "", "started": int(time.time())}
     def run():
         try:
@@ -100,8 +104,27 @@ def _scheduler():
                     redirect.publish(u)
                 except Exception as e:
                     print("redirect:", e, flush=True)
+            time.sleep(60 if redirect.last_url == u else 10)  # retry fast until the new URL is published
+
+    def watch_tunnel():  # a tunnel can be "active" yet dead (Cloudflare 1033): probe it from outside and restart it
+        bad = 0
+        while True:
             time.sleep(60)
+            u = tunnel_url()
+            if not u or config._load("tunnel.json", None):
+                continue
+            try:
+                ok = requests.get(u + "/api/status", timeout=15).ok
+            except Exception:
+                ok = False
+            bad = 0 if ok else bad + 1
+            if bad >= 3:
+                print("tunnel muerto, reiniciando cloudflared", flush=True)
+                subprocess.run(["pkill", "-x", "cloudflared"])  # systemd (Restart=always) brings it back with a new URL
+                bad = 0
+                time.sleep(90)
     threading.Thread(target=sync_redirect, daemon=True).start()
+    threading.Thread(target=watch_tunnel, daemon=True).start()
 
 # ---- tunnel url (cloudflared logs it) ----
 def tunnel_url():
@@ -141,6 +164,22 @@ def live():
     return sensors.measure()
 
 # ---- admin API ----
+def clean(log=lambda s: None):
+    if not config.PUMPS_ENABLED:
+        raise RuntimeError("Las bombas están desactivadas.")
+    try:
+        log("Llenando…\n")
+        sensors._run_pump(config.PUMP_IN_PIN, config.FILL_S)
+    finally:
+        log("Vaciando…\n")
+        sensors._run_pump(config.PUMP_OUT_PIN, config.DRAIN_S)
+    return "Listo"
+
+@app.post("/api/clean")
+def clean_now():
+    start_job("clean", clean)
+    return {"ok": True}
+
 MEASURE_COOLDOWN_S = 300  # shortcut: public button, so a pause protects pumps from being spammed; raise it if the URL gets abused
 
 @app.post("/api/measure")

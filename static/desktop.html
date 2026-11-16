@@ -146,8 +146,8 @@ function jobBox(name) {
 }
 
 async function renderResumen() {
-  const L = S.latest, a = L?.analysis, run = S.jobs.measure?.state === "running";
-  if (!L) return `<div class="empty"><h2>Aún no hay mediciones</h2><p class="muted">Cuando el equipo analice la primera muestra, aquí verás cómo está el agua.</p><button class="btn" id="mnow" ${run ? "disabled" : ""}>${run ? "Midiendo…" : "Medir ahora"}</button>${jobBox("measure")}</div>`;
+  const L = S.latest, a = L?.analysis, run = S.jobs.measure?.state === "running", busy = ["measure", "clean"].some(n => S.jobs[n]?.state === "running"), cleanBtn = `<button class="btn alt" id="clean" ${busy ? "disabled" : ""}>${S.jobs.clean?.state === "running" ? "Limpiando…" : "Limpieza"}</button>`;
+  if (!L) return `<div class="empty"><h2>Aún no hay mediciones</h2><p class="muted">Cuando el equipo analice la primera muestra, aquí verás cómo está el agua.</p><button class="btn" id="mnow" ${busy ? "disabled" : ""}>${run ? "Midiendo…" : "Medir ahora"}</button>${cleanBtn}${jobBox("measure")}</div>`;
   const rows = (await api("/history?days=7")).rows;
   const [t] = tier(L.score), stale = S.auto && S.now - L.ts > S.interval_min * 120;
   const rd = [["Acidez", "ph", L.ph, words.ph(L.ph), L.ph == null ? "—" : L.ph.toFixed(2), L.ph_cal ? "calibrada" : "sin calibrar"],
@@ -158,9 +158,9 @@ async function renderResumen() {
      <div class="score">${L.score}<small>/100</small></div>
      <h1>${esc(a?.headline || t)}</h1>
      <p>Medido ${ago(L.ts, S.now)}</p>
-     <button class="btn" id="mnow" ${run ? "disabled" : ""}>${run ? "Midiendo…" : "Medir ahora"}</button>
+     <button class="btn" id="mnow" ${busy ? "disabled" : ""}>${run ? "Midiendo…" : "Medir ahora"}</button>${cleanBtn}
     </div>${drop(L.score, 250)}</div>
-   ${run ? jobBox("measure") : ""}
+   ${run ? jobBox("measure") : ""}${S.jobs.clean?.state === "running" || S.jobs.clean?.state === "error" ? jobBox("clean") : ""}
    <div class="phwrap">${phStrip(L.ph)}</div>
    <div class="readings">${rd.map(([n, k, , [w, tone], v, note]) => `<div class="rd"><div class="n">${n}<span>${note}</span></div><div class="v">${v}</div>${spark(rows, k, SPARK[k])}<div class="tag ${tone}">${w}</div></div>`).join("")}</div>
    ${a ? `<div class="story"><div><h2>Qué le pasa al agua</h2><p class="summary">${esc(a.summary)}</p>
@@ -216,6 +216,7 @@ async function renderDispositivo() {
 function bind() {
   const on = (s, f) => { const e = $(s); if (e) e.onclick = guard(f); };
   const meas = async () => { await api("/measure", {}); toast("Midiendo…"); poll(); };
+  on("#clean", async () => { await api("/clean", {}); toast("Limpiando…"); poll(); });
   on("#mnow", meas); on("#mnow2", meas);
   $("#rng") && ($("#rng").onchange = e => { hist = +e.target.value; render(); });
   $("#login") && ($("#login").onsubmit = guard(async e => { e.preventDefault(); await api("/login", { password: $("#pw").value }); await refresh(); }));

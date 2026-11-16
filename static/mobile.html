@@ -85,19 +85,20 @@ document.querySelectorAll("nav button").forEach(b => b.onclick = () => { tab = b
 
 const every = () => S.interval_min >= 60 ? S.interval_min / 60 + " h" : S.interval_min + " min";
 let polling = false;
+const busy = () => ["measure", "clean"].some(n => S.jobs[n]?.state === "running");
 async function poll() {
   if (polling) return; polling = true;
-  try { do { S = await api("/status"); render(); if (S.jobs.measure?.state !== "running") break; await new Promise(r => setTimeout(r, 3000)); } while (true); } finally { polling = false; }
+  try { do { S = await api("/status"); render(); if (!busy()) break; await new Promise(r => setTimeout(r, 3000)); } while (true); } finally { polling = false; }
 }
-async function measureNow() {
-  try {
-    await api("/measure", {});
-  } catch (e) { alert(e.message); }
+async function act(path) {
+  try { await api(path, {}); } catch (e) { alert(e.message); }
   poll();
 }
 function measureBtn() {
-  const j = S.jobs.measure, run = j?.state === "running";
-  return `<button class="btn" data-measure ${run ? "disabled" : ""}>${run ? "Midiendo… puede tardar unos minutos" : "Medir ahora"}</button>${j?.state === "error" ? `<p class="muted small">No se pudo medir: ${esc(j.log.trim())}</p>` : ""}`;
+  const m = S.jobs.measure, c = S.jobs.clean, run = busy();
+  const err = (j, what) => j?.state === "error" ? `<p class="muted small">No se pudo ${what}: ${esc(j.log.trim())}</p>` : "";
+  return `<button class="btn" data-act="/measure" ${run ? "disabled" : ""}>${m?.state === "running" ? "Midiendo… puede tardar unos minutos" : "Medir ahora"}</button>
+   <button class="btn alt" data-act="/clean" ${run ? "disabled" : ""} style="margin-top:-6px">${c?.state === "running" ? "Limpiando…" : "Limpieza"}</button>${err(m, "medir")}${err(c, "hacer la limpieza")}`;
 }
 
 function header(L) {
@@ -113,8 +114,8 @@ async function render() {
   document.body.classList.toggle("page", tab !== "hoy");
   $("#top").innerHTML = tab === "hoy" ? header(L) : `<h1 class="title" style="text-align:left;padding:0">${TABS.find(t => t[0] === tab)[1]}</h1>`;
   $("#sheet").innerHTML = await ({ hoy: hoy, hist: hist, tips: tips, mas: mas })[tab]();
-  document.querySelectorAll("[data-measure]").forEach(b => b.onclick = measureNow);
-  if (S.jobs.measure?.state === "running") poll();
+  document.querySelectorAll("[data-act]").forEach(b => b.onclick = () => act(b.dataset.act));
+  if (busy()) poll();
   document.querySelectorAll("[data-d]").forEach(b => b.onclick = () => { days = +b.dataset.d; render(); });
 }
 
