@@ -149,7 +149,7 @@ async function renderResumen() {
   const L = S.latest, a = L?.analysis, run = S.jobs.measure?.state === "running";
   if (!L) return `<div class="empty"><h2>Aún no hay mediciones</h2><p class="muted">Cuando el equipo analice la primera muestra, aquí verás cómo está el agua.${S.admin ? "" : " Si eres administrador, entra desde Dispositivo para medir ahora."}</p>${S.admin ? `<button class="btn" id="mnow">Medir ahora</button>` : ""}${jobBox("measure")}</div>`;
   const rows = (await api("/history?days=7")).rows;
-  const [t] = tier(L.score), stale = S.now - L.ts > S.interval_min * 120;
+  const [t] = tier(L.score), stale = S.auto && S.now - L.ts > S.interval_min * 120;
   const rd = [["Acidez", "ph", L.ph, words.ph(L.ph), L.ph == null ? "—" : L.ph.toFixed(2), L.ph_cal ? "calibrada" : "sin calibrar"],
     ["Claridad", "ntu", L.ntu, words.ntu(L.ntu), L.ntu == null ? "—" : L.ntu.toFixed(0) + " <small>NTU</small>", "turbidez"],
     ["Temperatura", "temp", L.temp, words.temp(L.temp), L.temp == null ? "—" : L.temp.toFixed(1) + " <small>°C</small>", "del agua"]];
@@ -203,7 +203,8 @@ async function renderDispositivo() {
    <div class="row-actions"><button class="btn" id="tcap">Medir agua limpia</button><button class="btn alt" id="treset">Borrar calibración</button></div>
    <p class="muted">El agua limpia queda como 0 NTU. Los valores altos son relativos a esa referencia, no un análisis de laboratorio.</p></div></div>
   <div class="sec"><div><h3>Mediciones</h3><p class="d">Bombas: ${S.pumps ? "activadas" : "desactivadas (sin conectar)"}.</p></div>
-   <div><p style="margin-top:0"><label>Medir cada <select id="intv">${[[60, "1 hora"], [180, "3 horas"], [360, "6 horas"], [720, "12 horas"], [1440, "1 día"]].map(([m, l]) => `<option value="${m}" ${m == S.interval_min ? "selected" : ""}>${l}</option>`).join("")}</select></label></p>
+   <div><p style="margin-top:0"><label><input type="checkbox" id="auto" ${S.auto ? "checked" : ""}> Medir automáticamente</label></p>
+   <p><label>Medir cada <select id="intv" ${S.auto ? "" : "disabled"}>${[[60, "1 hora"], [180, "3 horas"], [360, "6 horas"], [720, "12 horas"], [1440, "1 día"]].map(([m, l]) => `<option value="${m}" ${m == S.interval_min ? "selected" : ""}>${l}</option>`).join("")}</select></label></p>
    <div class="row-actions"><button class="btn" id="mnow2">Medir ahora</button></div>${jobBox("measure")}</div></div>
   <div class="sec"><div><h3>Sistema</h3><p class="d">Linux se actualiza solo cada mes.</p></div>
    <div><p style="margin-top:0">Encendida hace ${(sys.uptime_s / 3600).toFixed(1)} h, CPU a ${sys.cpu_c.toFixed(0)} °C, disco libre ${sys.disk_free_gb.toFixed(0)} de ${sys.disk_total_gb.toFixed(0)} GB. Modelo ${esc(S.model)}: ${S.ollama ? "activo" : "<strong style='color:var(--coral)'>apagado</strong>"}.</p>
@@ -218,6 +219,7 @@ function bind() {
   on("#mnow", meas); on("#mnow2", meas);
   $("#rng") && ($("#rng").onchange = e => { hist = +e.target.value; render(); });
   $("#login") && ($("#login").onsubmit = guard(async e => { e.preventDefault(); await api("/login", { password: $("#pw").value }); await refresh(); }));
+  $("#auto") && ($("#auto").onchange = guard(async e => { await api("/settings", { auto: e.target.checked }, "PUT"); toast(e.target.checked ? "Medición automática activada" : "Medición automática apagada"); await refresh(); }));
   $("#intv") && ($("#intv").onchange = guard(async e => { await api("/settings", { interval_min: +e.target.value }, "PUT"); toast("Guardado"); }));
   document.querySelectorAll("[data-cap]").forEach(b => b.onclick = guard(async () => {
     b.disabled = true; b.textContent = "Midiendo…";

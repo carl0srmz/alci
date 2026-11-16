@@ -83,11 +83,29 @@ let S, tab = "hoy", days = 7;
 $("#nav").innerHTML = TABS.map(([k, l, d]) => `<button data-k="${k}" aria-selected="${k === "hoy"}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>${l}</button>`).join("");
 document.querySelectorAll("nav button").forEach(b => b.onclick = () => { tab = b.dataset.k; document.querySelectorAll("nav button").forEach(x => x.setAttribute("aria-selected", x === b)); scrollTo(0, 0); render(); });
 
+const every = () => S.interval_min >= 60 ? S.interval_min / 60 + " h" : S.interval_min + " min";
+let polling = false;
+async function poll() {
+  if (polling) return; polling = true;
+  try { do { S = await api("/status"); render(); if (S.jobs.measure?.state !== "running") break; await new Promise(r => setTimeout(r, 3000)); } while (true); } finally { polling = false; }
+}
+async function measureNow() {
+  try {
+    if (!S.admin) { const pw = prompt("Contraseña de administrador"); if (!pw) return; await api("/login", { password: pw }); }
+    await api("/measure", {});
+  } catch (e) { alert(e.message); }
+  poll();
+}
+function measureBtn() {
+  const j = S.jobs.measure, run = j?.state === "running";
+  return `<button class="btn" data-measure ${run ? "disabled" : ""}>${run ? "Midiendo… puede tardar unos minutos" : "Medir ahora"}</button>${j?.state === "error" ? `<p class="muted small">No se pudo medir: ${esc(j.log.trim())}</p>` : ""}`;
+}
+
 function header(L) {
   if (!L) return `<h1 style="margin-top:40px">Todavía no hay mediciones</h1><p>Cuando el equipo analice la primera muestra, aquí verás cómo está el agua.</p>`;
   const [t] = tier(L.score), a = L.analysis;
   return `${drop(L.score, 176)}<div class="score">${L.score}<small>/100</small></div><h1>${esc(a?.headline || t)}</h1><p>Medido ${ago(L.ts, S.now)}</p>
-   ${S.now - L.ts > S.interval_min * 120 ? `<div class="banner" style="margin:16px 0 0">Hace tiempo que no llegan mediciones. Puede que el equipo esté apagado.</div>` : ""}`;
+   ${S.auto && S.now - L.ts > S.interval_min * 120 ? `<div class="banner" style="margin:16px 0 0">Hace tiempo que no llegan mediciones. Puede que el equipo esté apagado.</div>` : ""}`;
 }
 
 async function render() {
@@ -96,16 +114,18 @@ async function render() {
   document.body.classList.toggle("page", tab !== "hoy");
   $("#top").innerHTML = tab === "hoy" ? header(L) : `<h1 class="title" style="text-align:left;padding:0">${TABS.find(t => t[0] === tab)[1]}</h1>`;
   $("#sheet").innerHTML = await ({ hoy: hoy, hist: hist, tips: tips, mas: mas })[tab]();
+  document.querySelectorAll("[data-measure]").forEach(b => b.onclick = measureNow);
+  if (S.jobs.measure?.state === "running") poll();
   document.querySelectorAll("[data-d]").forEach(b => b.onclick = () => { days = +b.dataset.d; render(); });
 }
 
 async function hoy() {
-  const L = S.latest; if (!L) return `<p class="muted" style="margin-top:34px">El equipo mide cada ${S.interval_min >= 60 ? S.interval_min / 60 + " horas" : S.interval_min + " minutos"}. Vuelve en un rato.</p>`;
+  const L = S.latest; if (!L) return `${measureBtn()}<p class="muted">${S.auto ? "El equipo mide cada " + every() + "." : "La medición automática está apagada."}</p>`;
   const rows = (await api("/history?days=7")).rows, a = L.analysis;
   const rd = [["Acidez", "ph", words.ph(L.ph), L.ph == null ? "—" : L.ph.toFixed(1), L.ph_cal ? "" : "aproximada"],
     ["Claridad", "ntu", words.ntu(L.ntu), L.ntu == null ? "—" : L.ntu.toFixed(0) + " <small>NTU</small>", ""],
     ["Temperatura", "temp", words.temp(L.temp), L.temp == null ? "—" : L.temp.toFixed(1) + " <small>°C</small>", ""]];
-  return `${rd.map(([n, k, [w, tone], v, note]) => `<div class="rd"><div class="n">${n}${note ? `<span>${note}</span>` : ""}</div><div class="v">${v}</div><div class="tag ${tone}">${w}</div>${spark(rows, k, SPARK[k])}</div>`).join("")}
+  return `${measureBtn()}${rd.map(([n, k, [w, tone], v, note]) => `<div class="rd"><div class="n">${n}${note ? `<span>${note}</span>` : ""}</div><div class="v">${v}</div><div class="tag ${tone}">${w}</div>${spark(rows, k, SPARK[k])}</div>`).join("")}
    ${phStrip(L.ph)}
    ${a ? `<div class="sec"><h2>Qué le pasa al agua</h2><p>${esc(a.summary)}</p></div>
      ${a.actions?.length ? `<div class="sec"><h2>Qué puedes hacer</h2><ul class="todo">${actionsList(a.actions)}</ul></div>` : ""}` : `<p class="muted sec">Estamos preparando el análisis…</p>`}
@@ -127,10 +147,9 @@ async function tips() {
 }
 
 function mas() {
-  const every = S.interval_min >= 60 ? S.interval_min / 60 + " h" : S.interval_min + " min";
   return `<div class="rd"><div class="n">Asistente</div><div class="v"></div><div class="tag ${S.ollama ? "good" : "bad"}">${S.ollama ? "Funcionando" : "Apagado"}</div></div>
    <div class="rd"><div class="n">Equipo</div><div class="v" style="font-size:1rem">${esc(S.device)}</div></div>
-   <div class="rd"><div class="n">Medimos cada</div><div class="v" style="font-size:1.2rem">${every}</div></div>
+   <div class="rd"><div class="n">Medición automática</div><div class="v" style="font-size:1.2rem">${S.auto ? every() : "Apagado"}</div></div>
    <a class="btn alt" href="/?view=desktop">Abrir el panel avanzado</a>
    <p class="muted small">El panel avanzado sirve para calibrar el sensor de pH y actualizar el sistema. Pide la contraseña de administrador.</p>`;
 }

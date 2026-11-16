@@ -1,4 +1,4 @@
-import glob, os, statistics, threading, time
+import fcntl, glob, os, statistics, threading, time
 import numpy as np
 from smbus2 import SMBus
 import config
@@ -155,15 +155,18 @@ def _open_arduino(tries=4):
 
 def _run_pump_serial(pin, seconds):
     n = 1 if pin == config.PUMP_IN_PIN else 2
-    with _open_arduino() as s:
-        s.write(f"A {int(config.PUMP_ACTIVE_LOW)}\nP{n} {int(seconds)}\n".encode())
-        try:
-            time.sleep(seconds)
-        finally:
+    # one process at a time: opening the port resets the Uno, which cuts or glitches a pump another process is running
+    with open(config.DATA / ".pumps.lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        with _open_arduino() as s:
+            s.write(f"A {int(config.PUMP_ACTIVE_LOW)}\nP{n} {int(seconds)}\n".encode())
             try:
-                s.write(f"P{n} 0\n".encode())
-            except Exception:
-                pass  # the sketch stops the pump by itself when the time is up
+                time.sleep(seconds)
+            finally:
+                try:
+                    s.write(f"P{n} 0\n".encode())
+                except Exception:
+                    pass  # the sketch stops the pump by itself when the time is up
 
 def _run_pump(pin, seconds):
     if config.PUMP_SERIAL or _arduino_port():  # an Arduino on USB wins over GPIO even without the env var

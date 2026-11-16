@@ -51,7 +51,7 @@ def device_name():
         _save("device.json", d)
     return d["name"]
 
-settings = {"interval_min": 360, **_load("settings.json", {})}
+settings = {"interval_min": 360, "auto": False, **_load("settings.json", {})}
 
 def save_settings():
     _save("settings.json", settings)

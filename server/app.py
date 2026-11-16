@@ -77,6 +77,9 @@ def cycle(log=lambda s: None):
 def _scheduler():
     def loop():
         while True:
+            if not config.settings["auto"]:
+                time.sleep(30)
+                continue
             last = store.latest()
             wait = config.settings["interval_min"] * 60 - (time.time() - last["ts"] if last else 1e9)
             time.sleep(max(30, min(wait, 600)) if wait > 0 else 0)
@@ -119,7 +122,7 @@ def status(alci_session: str | None = Cookie(None)):
     cal = sensors._cal()
     return {"device": NAME, "domain": f"{NAME}.{config.DOMAIN}", "url": tunnel_url(), "now": int(time.time()),
             "admin": alci_session in _sessions, "latest": store.latest(), "ollama": ollama_ok, "model": config.MODEL,
-            "redirect": {"ok": redirect.last_url is not None, "error": redirect.last_error}, "pumps": bool(config.PUMPS_ENABLED), "interval_min": config.settings["interval_min"],
+            "redirect": {"ok": redirect.last_url is not None, "error": redirect.last_error}, "pumps": bool(config.PUMPS_ENABLED), "interval_min": config.settings["interval_min"], "auto": config.settings["auto"],
             "calibration": cal and {k: cal[k] for k in ("ts", "max_err")},
             "turb_calibration": config._load("calibration_turb.json", None), "jobs": jobs}
 
@@ -145,7 +148,10 @@ def measure_now():
 
 @app.put("/api/settings", dependencies=[Depends(admin)])
 def put_settings(body: dict):
-    config.settings["interval_min"] = max(5, min(int(body["interval_min"]), 7 * 1440))
+    if "interval_min" in body:
+        config.settings["interval_min"] = max(5, min(int(body["interval_min"]), 7 * 1440))
+    if "auto" in body:
+        config.settings["auto"] = bool(body["auto"])
     config.save_settings()
     return config.settings
 
