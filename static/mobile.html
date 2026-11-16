@@ -91,7 +91,6 @@ async function poll() {
 }
 async function measureNow() {
   try {
-    if (!S.admin) { const pw = prompt("Contraseña de administrador"); if (!pw) return; await api("/login", { password: pw }); }
     await api("/measure", {});
   } catch (e) { alert(e.message); }
   poll();

@@ -24,6 +24,10 @@ def add_analysis(mid, body):
         _db.execute("INSERT OR REPLACE INTO a VALUES(?,?,?)", (mid, int(time.time()), json.dumps(body)))
         _db.commit()
 
+def clear():
+    with _lock:
+        _db.execute("DELETE FROM a"); _db.execute("DELETE FROM m"); _db.commit()
+
 def _m(row):
     d = dict(row)
     d["parts"] = json.loads(d["parts"])

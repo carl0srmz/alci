@@ -147,7 +147,7 @@ function jobBox(name) {
 
 async function renderResumen() {
   const L = S.latest, a = L?.analysis, run = S.jobs.measure?.state === "running";
-  if (!L) return `<div class="empty"><h2>Aún no hay mediciones</h2><p class="muted">Cuando el equipo analice la primera muestra, aquí verás cómo está el agua.${S.admin ? "" : " Si eres administrador, entra desde Dispositivo para medir ahora."}</p>${S.admin ? `<button class="btn" id="mnow">Medir ahora</button>` : ""}${jobBox("measure")}</div>`;
+  if (!L) return `<div class="empty"><h2>Aún no hay mediciones</h2><p class="muted">Cuando el equipo analice la primera muestra, aquí verás cómo está el agua.</p><button class="btn" id="mnow" ${run ? "disabled" : ""}>${run ? "Midiendo…" : "Medir ahora"}</button>${jobBox("measure")}</div>`;
   const rows = (await api("/history?days=7")).rows;
   const [t] = tier(L.score), stale = S.auto && S.now - L.ts > S.interval_min * 120;
   const rd = [["Acidez", "ph", L.ph, words.ph(L.ph), L.ph == null ? "—" : L.ph.toFixed(2), L.ph_cal ? "calibrada" : "sin calibrar"],
@@ -158,7 +158,7 @@ async function renderResumen() {
      <div class="score">${L.score}<small>/100</small></div>
      <h1>${esc(a?.headline || t)}</h1>
      <p>Medido ${ago(L.ts, S.now)}</p>
-     ${S.admin ? `<button class="btn" id="mnow" ${run ? "disabled" : ""}>${run ? "Midiendo…" : "Medir ahora"}</button>` : ""}
+     <button class="btn" id="mnow" ${run ? "disabled" : ""}>${run ? "Midiendo…" : "Medir ahora"}</button>
     </div>${drop(L.score, 250)}</div>
    ${run ? jobBox("measure") : ""}
    <div class="phwrap">${phStrip(L.ph)}</div>
@@ -205,7 +205,7 @@ async function renderDispositivo() {
   <div class="sec"><div><h3>Mediciones</h3><p class="d">Bombas: ${S.pumps ? "activadas" : "desactivadas (sin conectar)"}.</p></div>
    <div><p style="margin-top:0"><label><input type="checkbox" id="auto" ${S.auto ? "checked" : ""}> Medir automáticamente</label></p>
    <p><label>Medir cada <select id="intv" ${S.auto ? "" : "disabled"}>${[[60, "1 hora"], [180, "3 horas"], [360, "6 horas"], [720, "12 horas"], [1440, "1 día"]].map(([m, l]) => `<option value="${m}" ${m == S.interval_min ? "selected" : ""}>${l}</option>`).join("")}</select></label></p>
-   <div class="row-actions"><button class="btn" id="mnow2">Medir ahora</button></div>${jobBox("measure")}</div></div>
+   <div class="row-actions"><button class="btn" id="mnow2">Medir ahora</button><button class="btn warn" id="wipe">Borrar todas las mediciones</button></div>${jobBox("measure")}</div></div>
   <div class="sec"><div><h3>Sistema</h3><p class="d">Linux se actualiza solo cada mes.</p></div>
    <div><p style="margin-top:0">Encendida hace ${(sys.uptime_s / 3600).toFixed(1)} h, CPU a ${sys.cpu_c.toFixed(0)} °C, disco libre ${sys.disk_free_gb.toFixed(0)} de ${sys.disk_total_gb.toFixed(0)} GB. Modelo ${esc(S.model)}: ${S.ollama ? "activo" : "<strong style='color:var(--coral)'>apagado</strong>"}.</p>
    <p class="muted">Última actualización de Linux: ${up ? ago(up.ts, S.now) + (up.ok ? "" : " (con errores)") : "ninguna todavía"}.</p>
@@ -229,6 +229,7 @@ function bind() {
   on("#calreset", async () => { await api("/calibrate/ph/reset", {}); calPts = []; toast("Calibración borrada"); await refresh(); });
   on("#tcap", async () => { const c = await api("/calibrate/turb/capture", {}); toast(`Agua limpia guardada: ${c.v_clear.toFixed(2)} V`); await refresh(); });
   on("#treset", async () => { await api("/calibrate/turb/reset", {}); toast("Calibración de turbidez borrada"); await refresh(); });
+  on("#wipe", async () => { if (confirm("¿Borrar TODAS las mediciones y sus análisis? No se puede deshacer.")) { await api("/measurements", {}, "DELETE"); toast("Mediciones borradas"); await refresh(); } });
   on("#upd", async () => { await api("/system/update", {}); toast("Actualizando…"); poll(); });
   on("#reboot", async () => { if (confirm("¿Reiniciar la Pi? Tardará un par de minutos en volver.")) { await api("/system/reboot", {}); toast("Reiniciando…"); } });
 }

@@ -141,9 +141,19 @@ def live():
     return sensors.measure()
 
 # ---- admin API ----
-@app.post("/api/measure", dependencies=[Depends(admin)])
+MEASURE_COOLDOWN_S = 300  # shortcut: public button, so a pause protects pumps from being spammed; raise it if the URL gets abused
+
+@app.post("/api/measure")
 def measure_now():
+    last = store.latest()
+    if last and time.time() - last["ts"] < MEASURE_COOLDOWN_S:
+        raise HTTPException(429, f"Acaba de medirse. Vuelve a intentar en {int((MEASURE_COOLDOWN_S - (time.time() - last['ts'])) / 60) + 1} min.")
     start_job("measure", cycle)
+    return {"ok": True}
+
+@app.delete("/api/measurements", dependencies=[Depends(admin)])
+def reset_measurements():
+    store.clear()
     return {"ok": True}
 
 @app.put("/api/settings", dependencies=[Depends(admin)])
