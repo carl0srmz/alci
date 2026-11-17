@@ -2,6 +2,23 @@
 
 Monitor de calidad de agua para tinacos y cisternas. Una Raspberry Pi toma una muestra, mide turbidez, pH y temperatura, calcula una calificación de 0 a 100 y un modelo de lenguaje local explica qué le pasa al agua y qué hacer, buscando información en la web. Se consulta desde cualquier lugar con una URL pública gratuita.
 
+## Capturas
+
+Panel de escritorio:
+
+![Resumen: calificación, gota, lecturas y qué hacer](docs/screenshots/escritorio-resumen.png)
+
+![Historial: gráficas y tabla de mediciones](docs/screenshots/escritorio-historial.png)
+
+Versión de celular:
+
+<p>
+  <img src="docs/screenshots/celular-hoy.png" alt="Celular: calificación y lecturas de hoy" width="300">
+  <img src="docs/screenshots/celular-historial.png" alt="Celular: historial" width="300">
+</p>
+
+Las capturas se tomaron con datos de demostración, no con lecturas de un tinaco real.
+
 ## Hardware
 
 | Pieza | Para qué | Conexión |
